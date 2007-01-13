@@ -9,10 +9,7 @@
     <target name="-javadoc-build" depends="init">
         <mkdir dir="${dist.javadoc.dir}"/>
         <javadoc destdir="${dist.javadoc.dir}" source="${javac.source}" notree="${javadoc.notree}" use="${javadoc.use}" nonavbar="${javadoc.nonavbar}" noindex="${javadoc.noindex}" splitindex="${javadoc.splitindex}" author="${javadoc.author}" version="${javadoc.version}" windowtitle="${javadoc.windowtitle}" private="${javadoc.private}" additionalparam="${javadoc.additionalparam}" failonerror="true" useexternalfile="true">
-            <header>
-                <![CDATA[<a href="http://sourceforge.net/projects/wpg-proxy/">Java HTTP Proxy Library Project Page</a><br><a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=185351&type=4" width="125" height="37" border="0" alt="SourceForge.net Logo" /></a>]]>
-                
-            </header>
+            <Header><![CDATA[<a href="http://sourceforge.net/projects/wpg-proxy/">Java HTTP Proxy Library Project Page</a><br><a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=185351&type=4" width="125" height="37" border="0" alt="SourceForge.net Logo" /></a>]]></Header>
             <classpath>
                 <path path="${javac.classpath}"/>
             </classpath>
@@ -23,6 +20,14 @@
             <fileset dir="${src.dir}" includes="*.java"/>
         </javadoc>
     </target>
+
+	<target name="javadoc-install" depends="-javadoc-build">
+		<input message="SourceForge User to upload as: " addproperty="sf.user" />
+		<input message="Password: " addproperty="sf.pass" />
+		<scp remoteToDir="${sf.user}:${sf.pass}@shell.sourceforge.net:/home/groups/w/wp/wpg-proxy/htdocs" trust="yes">
+			<fileset dir="${dist.javadoc.dir}" />
+		</scp>
+	</target>
     <!--
 
     There exist several targets which are by default empty and which can be 
