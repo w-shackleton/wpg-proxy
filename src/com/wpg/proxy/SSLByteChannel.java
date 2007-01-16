@@ -29,45 +29,45 @@ import org.apache.log4j.Logger;
  * periodically to check for updates or to contribute improvements.
  * </p>
  * usage:
-KeyStore ks = KeyStore.getInstance("JKS");
-File kf = new File("keystore");
-ks.load(new FileInputStream(kf), "storepassword".toCharArray());
-
-KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-kmf.init(ks, "keypassword".toCharArray());
-
-TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-tmf.init(ks);
-
-SSLContext sslContext = SSLContext.getInstance("TLS");
-sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-
-SSLEngine engine = sslContext.createSSLEngine();
-engine.setUseClientMode(false);
-engine.beginHandshake();
-
-SSLByteChannel sslByteChannel = new SSLByteChannel(channel, engine);
+ * KeyStore ks = KeyStore.getInstance("JKS");
+ * File kf = new File("keystore");
+ * ks.load(new FileInputStream(kf), "storepassword".toCharArray());
+ *
+ * KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+ * kmf.init(ks, "keypassword".toCharArray());
+ *
+ * TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+ * tmf.init(ks);
+ *
+ * SSLContext sslContext = SSLContext.getInstance("TLS");
+ * sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+ *
+ * SSLEngine engine = sslContext.createSSLEngine();
+ * engine.setUseClientMode(false);
+ * engine.beginHandshake();
+ *
+ * SSLByteChannel sslByteChannel = new SSLByteChannel(channel, engine);
  *
  * @author David Crosson
  * @author david.crosson@wanadoo.fr
  * @version 1.0.0
  */
 public class SSLByteChannel implements ByteChannel {
-	private static Logger logger = Logger.getLogger(SSLByteChannel.class);
+    private static Logger logger = Logger.getLogger(SSLByteChannel.class);
     private ByteChannel wrappedChannel;
     private boolean closed = false;
     private SSLEngine engine;
     
     private final ByteBuffer inAppData;
     private final ByteBuffer outAppData;
-
+    
     private final ByteBuffer inNetData;
     private final ByteBuffer outNetData;
-
-
+    
+    
     /**
      * Creates a new instance of SSLByteChannel
-     * @param wrappedChannel The byte channel on which this ssl channel is built. 
+     * @param wrappedChannel The byte channel on which this ssl channel is built.
      * This channel contains encrypted data.
      * @param engine A SSLEngine instance that will remember SSL current
      * context. Warning, such an instance CAN NOT be shared
@@ -80,11 +80,11 @@ public class SSLByteChannel implements ByteChannel {
         SSLSession session = engine.getSession();
         inAppData  = ByteBuffer.allocate(session.getApplicationBufferSize());
         outAppData = ByteBuffer.allocate(session.getApplicationBufferSize());
-    
+        
         inNetData  = ByteBuffer.allocate(session.getPacketBufferSize());
         outNetData = ByteBuffer.allocate(session.getPacketBufferSize());
     }
-
+    
     
     /**
      * Ends SSL operation and close the wrapped byte channel
@@ -101,7 +101,7 @@ public class SSLByteChannel implements ByteChannel {
             }
         }
     }
-
+    
     /**
      * Is the channel open ?
      * @return true if the channel is still open
@@ -109,7 +109,7 @@ public class SSLByteChannel implements ByteChannel {
     public boolean isOpen() {
         return !closed;
     }
-
+    
     /**
      * Fill the given buffer with some bytes and return the number of bytes
      * added in the buffer.<br>
@@ -126,25 +126,25 @@ public class SSLByteChannel implements ByteChannel {
             try {
                 SSLEngineResult r = sslLoop(unwrap());
             } catch(SSLException e) {
-				logger.fatal("SSLException while reading: "+ e,e);
+                logger.fatal("SSLException while reading: "+ e,e);
             } catch(ClosedChannelException e) {
                 close();
             }
         }
-
+        
         inAppData.flip();
         int posBefore = inAppData.position();
         byteBuffer.put(inAppData);
         int posAfter = inAppData.position();
         inAppData.compact();
-
+        
         if (posAfter - posBefore > 0) return posAfter - posBefore ;
         if (isOpen())
             return 0;
-        else 
+        else
             return -1;
     }
-
+    
     /**
      * Write remaining bytes of the given byte buffer.
      * This method may return immediately with nothing written.
@@ -164,7 +164,7 @@ public class SSLByteChannel implements ByteChannel {
             outAppData.put(byteBuffer);  // throw a BufferOverflowException if byteBuffer.remaining() > outAppData.remaining()
         } else {
             while (byteBuffer.hasRemaining() && outAppData.hasRemaining()) {
-             outAppData.put(byteBuffer.get());
+                outAppData.put(byteBuffer.get());
             }
         }
         posAfter = byteBuffer.position();
@@ -176,7 +176,7 @@ public class SSLByteChannel implements ByteChannel {
                     if (r.bytesConsumed() == 0 && r.bytesProduced()==0) break;
                 };
             } catch(SSLException e) {
-				logger.fatal("SSLException while reading: "+ e,e);
+                logger.fatal("SSLException while reading: "+ e,e);
             } catch(ClosedChannelException e) {
                 close();
             }
@@ -184,16 +184,16 @@ public class SSLByteChannel implements ByteChannel {
         
         return posAfter - posBefore;
     }
-
+    
     
     
     
     
     private SSLEngineResult unwrap() throws IOException, SSLException {
         while(wrappedChannel.read(inNetData) > 0) ;
-
+        
         inNetData.flip();
-        SSLEngineResult ser = engine.unwrap(inNetData, inAppData); 
+        SSLEngineResult ser = engine.unwrap(inNetData, inAppData);
         inNetData.compact();
         
         return ser;
@@ -205,20 +205,20 @@ public class SSLByteChannel implements ByteChannel {
         outAppData.flip();
         ser = engine.wrap(outAppData,  outNetData);
         outAppData.compact();
-
+        
         outNetData.flip();
         while(outNetData.hasRemaining()) wrappedChannel.write(outNetData); // TODO : To be enhanced (potential deadlock ?)
         outNetData.compact();
         
         return ser;
     }
-
+    
     private SSLEngineResult sslLoop(SSLEngineResult ser) throws SSLException, IOException {
         if (ser==null) return ser;
         //log.finest(String.format("%s - %s\n", ser.getStatus().toString(), ser.getHandshakeStatus().toString()));
-		logger.trace(ser.getStatus().toString() +" - "+ ser.getHandshakeStatus().toString());
+        logger.trace(ser.getStatus().toString() +" - "+ ser.getHandshakeStatus().toString());
         while(   ser.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.FINISHED
-              && ser.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+                && ser.getHandshakeStatus() != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
             switch(ser.getHandshakeStatus()) {
                 case NEED_TASK:
                     //Executor exec = Executors.newSingleThreadExecutor();
@@ -248,5 +248,5 @@ public class SSLByteChannel implements ByteChannel {
         }
         return ser;
     }
-
+    
 }

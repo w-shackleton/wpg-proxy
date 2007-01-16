@@ -46,26 +46,42 @@ public class Proxy extends Thread {
     /** stop the proxy server */
     public void shutdown() { running=false; }
     
-    private Vector<HttpMessageProcessor> requestProcessors = new Vector();
-    private Vector<HttpMessageListener> requestListeners = new Vector();
-    private Vector<HttpMessageProcessor> responseProcessors = new Vector();
-    private Vector<HttpMessageListener> responseListeners = new Vector();
+    private Vector<HttpMessageProcessor> requestProcessors = new Vector<HttpMessageProcessor>();
+    private Vector<HttpMessageListener> requestListeners = new Vector<HttpMessageListener>();
+    private Vector<HttpMessageProcessor> responseProcessors = new Vector<HttpMessageProcessor>();
+    private Vector<HttpMessageListener> responseListeners = new Vector<HttpMessageListener>();
     /** Add a new request processor */
-    public void addRequestProcessor( HttpMessageProcessor hmp ) { requestProcessors.addElement( hmp ); }
+    public void addRequestProcessor( HttpMessageProcessor hmp ) {
+        requestProcessors.addElement( hmp );
+    }
     /** Get the list of request processors */
-    public Vector<HttpMessageProcessor> getRequestProcessors(){ return requestProcessors; }
+    public Vector<HttpMessageProcessor> getRequestProcessors(){
+        return requestProcessors;
+    }
     /** Add a new request listener to receive incomming requests */
-    public void addRequestListener( HttpMessageListener hml ) { requestListeners.addElement( hml ); }
+    public void addRequestListener( HttpMessageListener hml ) {
+        requestListeners.addElement( hml );
+    }
     /** Get the list of request listeners */
-    public Vector<HttpMessageListener> getRequestListeners(){ return requestListeners; }
+    public Vector<HttpMessageListener> getRequestListeners(){
+        return requestListeners;
+    }
     /** Add a new response processor */
-    public void addResponseProcessor( HttpMessageProcessor hmp ) { responseProcessors.addElement( hmp ); }
+    public void addResponseProcessor( HttpMessageProcessor hmp ) {
+        responseProcessors.addElement( hmp );
+    }
     /** Get the list of response processors */
-    public Vector<HttpMessageProcessor> getResponseProcessors(){ return responseProcessors; }
+    public Vector<HttpMessageProcessor> getResponseProcessors(){
+        return responseProcessors;
+    }
     /** Add a new response listener to receive incomming http responses, as well as the request */
-    public void addResponseListener( HttpMessageListener hml ) { responseListeners.addElement( hml ); }
+    public void addResponseListener( HttpMessageListener hml ) {
+        responseListeners.addElement( hml );
+    }
     /** Get the list of response listeners */
-    public Vector<HttpMessageListener> getResponseListeners(){ return responseListeners; }
+    public Vector<HttpMessageListener> getResponseListeners(){
+        return responseListeners;
+    }
     
     /** Run registered HttpMessageProcessors on a HttpMessage and return it
      * or null if doSend() returned false */
@@ -76,7 +92,8 @@ public class Proxy extends Thread {
         for(int i=0; i< procs.size(); i++ ) {
             logger.trace("Processing Processor "+ (i+1) +" of "+ procs.size());
             HttpMessageProcessor hmp = (HttpMessageProcessor) procs.elementAt(i);
-            if( ! hmp.doContinue(message) ) break;
+            if( ! hmp.doContinue(message) )
+                break;
             message = (HttpMessageRequest) hmp.process(message);
             if( message == null || !hmp.doSend(message) ) {
                 doSend=false;
@@ -501,7 +518,8 @@ public class Proxy extends Thread {
         while( (line = is.readLine()).length() > 0 ) {
             headers.addElement(line.replaceAll("[\r\n]+",""));
             logger.trace("request line: \""+ line +"\"");
-            if( line.endsWith("\r\n\r\n") ) break;
+            if( line.endsWith("\r\n\r\n") )
+                break;
         }
         request.setHeaders(headers);
         logger.trace("Finished Reading Header of Request");
@@ -533,7 +551,8 @@ public class Proxy extends Thread {
                 StringBuffer sb = new StringBuffer();
                 for( int i =0; i< items.size(); i++ ) {
                     sb.append((String) items.elementAt(i));
-                    if( (i+1) < items.size() ) sb.append(", ");
+                    if( (i+1) < items.size() )
+                        sb.append(", ");
                 }
                 connection.setRequestProperty(key,sb.toString());
                 logger.trace("setting header: "+key+": "+ sb.toString() );
@@ -578,10 +597,11 @@ public class Proxy extends Thread {
             byte[] buff = new byte[1024*50];
             int size = reader.read(buff,0,buff.length);
             logger.trace("Size of read: "+ size);
-            if( size<1 ) break;
+            if( size<1 )
+                break;
             response.addToBody(buff,size);
         }
-        if( logger.isTraceEnabled() &&response.getBodyContent() != null ) {
+        if( logger.isTraceEnabled() && response.getBodyContent() != null ) {
             BufferedReader br = new BufferedReader( new InputStreamReader( response.getBodyContentStream()) );
             char c;
             StringBuffer sb = new StringBuffer();
@@ -631,7 +651,7 @@ public class Proxy extends Thread {
     
     private static class WorkAroundX509TrustManager implements X509TrustManager {
                 /*
-                public boolean isClientTrusted(X509Certificate[] chain){ return true; }
+                public boolean isClientTrusted(X2509Certificate[] chain){ return true; }
                 public boolean isServerTrusted(X509Certificate[] chain){ return true; }
                 public X509Certificate[] getAcceptedIssuers(){ return null; }
                  */
@@ -830,7 +850,9 @@ public class Proxy extends Thread {
                 while(run) {
                     try{
                         int c;
-                        while( in.available() > 0 &&  (c= in.read()) != -1 ) { out.write(c); }
+                        while( in.available() > 0 &&  (c= in.read()) != -1 ) {
+                            out.write(c);
+                        }
                     }catch( IOException e ) {
                         logger.error("IOException: "+e,e);
                         run=false;
@@ -915,7 +937,7 @@ public class Proxy extends Thread {
             Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
             System.setProperty("java.protocol.handler.pkgs","com.sun.net.ssl.internal.www.protocol");
             File keyFile = null;
-            try{
+            try {
                 keyFile = File.createTempFile("proxy","keystore");
                 keyFile.deleteOnExit();
                 DataInputStream keyIS = new DataInputStream(logger.getClass().getResourceAsStream("/com/wpg/exproxy-keystore") );
