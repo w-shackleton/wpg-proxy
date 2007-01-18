@@ -1,3 +1,22 @@
+/*
+ Java HTTP Proxy Library (wpg-proxy), 
+    more info at http://wpg-proxy.sourceforge.net/
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 package com.wpg.proxy;
 
 import java.nio.ByteBuffer;
@@ -69,12 +88,12 @@ public abstract class HttpMessage {
         //setHeader(HEADER_CONTENT_LENGTH, v);
     }
     /** Get raw content as an Array of Bytes */
-    public byte[] getBodyContent(){ 
-        return body; 
+    public byte[] getBodyContent(){
+        return body;
     }
     /** Get the content as a Stream of Bytes */
-    public java.io.ByteArrayInputStream getBodyContentStream() { 
-        return new java.io.ByteArrayInputStream(body); 
+    public java.io.ByteArrayInputStream getBodyContentStream() {
+        return new java.io.ByteArrayInputStream(body);
     }
     
     /** Get entire message as a ByteBuffer containing the header and body if any */
@@ -126,13 +145,13 @@ public abstract class HttpMessage {
             Vector items = new Vector(roList.size());
             items.addAll(roList);
             logger.trace("Adding Header: "+ key +"["+ items +"]");
-            if( key != null) 
+            if( key != null)
                 setHeader(key, items);
         }
     }
     /** Get a specific Header as a List */
-    public List<String> getHeaderValues( String header ) { 
-        return headers.get(header); 
+    public List<String> getHeaderValues( String header ) {
+        return headers.get(header);
     }
     /** Set a specific Header from a List */
     public void setHeader( String s, Vector l ) {
@@ -140,7 +159,7 @@ public abstract class HttpMessage {
         if(headers == null)
             headers = new Hashtable();
         headers.put(s,l);
-        if( ! headerOrder.contains(s) ) 
+        if( ! headerOrder.contains(s) )
             headerOrder.addElement(s);
     }
     /** Add to a specific Header from a String */
