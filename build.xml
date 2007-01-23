@@ -35,7 +35,7 @@
 
      <target name="init">  
           <mkdir dir="${wpg.proxy.build}/classes"/>
-          <mkdir dir="${wpg.proxy.build}/test/env"/>
+          <mkdir dir="${wpg.proxy.build}/test"/>
           <mkdir dir="${wpg.proxy.javadocs}"/>
           <mkdir dir="${wpg.proxy.dist}"/>
      </target>
@@ -58,12 +58,8 @@
 
      <target name="test" depends="init" 
 					description="build the proxy unit and integration tests"> 
-          <javac srcdir="${wpg.proxy.test}" destdir="${wpg.proxy.build}/test/env"
+          <javac srcdir="${wpg.proxy.test}" destdir="${wpg.proxy.build}/test"
 					classpathref="wpg.class.path" />
-		  <copy file="${wpg.proxy.test}/com/wpg/proxy/server/server.properties" todir="${wpg.proxy.build}/test/env/com/wpg/proxy/server"/>
-		  <jar destfile="${wpg.proxy.dist}/wpgenv.jar"
-       				basedir="${wpg.proxy.build}/test/env"
-					includes="*/**"/> 
      </target>
 
     <target name="docs" depends="init"
