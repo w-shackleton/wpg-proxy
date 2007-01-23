@@ -1,0 +1,59 @@
+ Java HTTP Proxy Library (wpg-proxy), 
+    more info at http://wpg-proxy.sourceforge.net/
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ ------------------------------------------------------------------------------
+
+Java HTTP Proxy Library (http://wpg-proxy.sourceforge.net/)
+
+Java Library to assist in recording and troubleshooting http by providing an 
+implementation of a proxy and having extensible classes to handle post/pre 
+processing which can be used to carry out custom actions or logging of the 
+transactions.
+
+Build Instructions
+==================
+
+To build wpg-proxy you will need to retrieve the JAR dependencies (see Ivy
+Installation below) by issuing 
+
+ant libs
+
+from within the directory where the project build.xml is located.  If you
+prefer not to use Ivy then downloads the JARs identified in the ivy.xml
+file and place them yourself into the lib directory of this project.
+
+The wpg-proxy JAR itself can be built by issuing
+
+ant compile
+
+and documentation by issuing
+
+and docs
+
+
+Ivy Installation
+================
+
+Ivy is a depdency manager that retrieves/resolves JAR dependencies and 
+keeps copies thereof in a local cache (usually ~/.ivy/)  You can find 
+out more about ivy and download it from:
+
+http://incubator.apache.org/ivy/
+
+Once ivy is installed you will need to add the ivy.jar to your CLASSPATH
+(this jar is usually located in ~/.ivy/jars/ivy.jar)
+
