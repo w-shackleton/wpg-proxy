@@ -48,7 +48,7 @@ and docs
 Ivy Installation
 ================
 
-Ivy is a depdency manager that retrieves/resolves JAR dependencies and 
+Ivy is a dependency manager that retrieves/resolves JAR dependencies and 
 keeps copies thereof in a local cache (usually ~/.ivy/)  You can find 
 out more about ivy and download it from:
 
