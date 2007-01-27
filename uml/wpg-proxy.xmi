@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<XMI xmlns:UML="http://schema.omg.org/spec/UML/1.3" verified="false" timestamp="2007-01-27T17:38:19" xmi.version="1.2" >
+<XMI xmlns:UML="http://schema.omg.org/spec/UML/1.3" verified="false" timestamp="2007-01-27T17:41:33" xmi.version="1.2" >
  <XMI.header>
   <XMI.documentation>
    <XMI.exporter>umbrello uml modeller http://uml.sf.net</XMI.exporter>
@@ -39,12 +39,12 @@
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="38" isRoot="false" isAbstract="false" name="getPort" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1289" type="12" />
+        <UML:Parameter kind="return" xmi.id="1369" type="12" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="232" isRoot="false" isAbstract="false" name="getHost" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1290" type="20" />
+        <UML:Parameter kind="return" xmi.id="1370" type="20" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="273" isRoot="false" isAbstract="false" name="proxy" />
@@ -79,12 +79,12 @@
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="668" isRoot="false" isAbstract="false" name="getRequestHandlers" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1291" type="54" />
+        <UML:Parameter kind="return" xmi.id="1371" type="54" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="672" isRoot="false" isAbstract="false" name="getResponseHandlers" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1292" type="68" />
+        <UML:Parameter kind="return" xmi.id="1372" type="68" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
       <UML:Operation comment="Listen for requests from client to connect to remote servers." isSpecification="false" isLeaf="false" visibility="public" xmi.id="147" isRoot="false" isAbstract="false" name="accept" />
@@ -101,7 +101,7 @@
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="954" isRoot="false" isAbstract="false" name="getBackLog" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1293" type="12" />
+        <UML:Parameter kind="return" xmi.id="1373" type="12" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
      </UML:Classifier.feature>
@@ -120,12 +120,12 @@
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="784" isRoot="false" isAbstract="false" name="getProtocol" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1294" type="20" />
+        <UML:Parameter kind="return" xmi.id="1374" type="20" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="785" isRoot="false" isAbstract="false" name="getVersion" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1295" type="20" />
+        <UML:Parameter kind="return" xmi.id="1375" type="20" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="786" isRoot="false" isAbstract="false" name="addHeader" >
@@ -141,17 +141,17 @@
       </UML:Operation>
       <UML:Operation comment="The length (in bytes) of the message content" isSpecification="false" isLeaf="false" visibility="public" xmi.id="857" isRoot="false" isAbstract="false" name="getContentLength" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1296" type="12" />
+        <UML:Parameter kind="return" xmi.id="1376" type="12" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="858" isRoot="false" isAbstract="false" name="getMIMEType" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1297" type="20" />
+        <UML:Parameter kind="return" xmi.id="1377" type="20" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
       <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="933" isRoot="false" isAbstract="false" name="getStatusCode" >
        <UML:BehavioralFeature.parameter>
-        <UML:Parameter kind="return" xmi.id="1298" type="12" />
+        <UML:Parameter kind="return" xmi.id="1378" type="12" />
        </UML:BehavioralFeature.parameter>
       </UML:Operation>
      </UML:Classifier.feature>
@@ -222,7 +222,7 @@
   </UML:Model>
  </XMI.content>
  <XMI.extensions xmi.extender="umbrello" >
-  <docsettings viewid="11" documentation="" uniqueid="1298" />
+  <docsettings viewid="11" documentation="" uniqueid="1378" />
   <diagrams>
    <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="100" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1138" snapy="10" showatts="1" xmi.id="11" documentation="" type="402" showops="1" showpackage="0" name="Proxy design" localid="900000" showstereotype="1" showscope="1" snapcsgrid="0" font="Bitstream Vera Sans,12,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="840" >
     <widgets>
@@ -268,17 +268,6 @@
       </linepath>
      </assocwidget>
     </associations>
-   </diagram>
-   <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="100" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="846" snapy="10" showatts="1" xmi.id="313" documentation="" type="403" showops="1" showpackage="0" name="Proxy sequence" localid="899997" showstereotype="0" showscope="1" snapcsgrid="0" font="Bitstream Vera Sans,12,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="655" >
-    <widgets>
-     <objectwidget usesdiagramfillcolour="1" width="122" usesdiagramusefillcolour="1" x="146" linecolour="none" y="48" instancename="" linewidth="none" usesdiagramlinewidth="1" usesdiagramlinecolour="1" fillcolour="none" height="30" usefillcolor="1" isinstance="0" xmi.id="124" decon="0" localid="899999" multipleinstance="0" drawasactor="0" font="Bitstream Vera Sans,12,-1,5,50,0,1,0,0,0" />
-     <objectwidget usesdiagramfillcolour="1" width="159" usesdiagramusefillcolour="1" x="298" linecolour="none" y="48" instancename="" linewidth="none" usesdiagramlinewidth="1" usesdiagramlinecolour="1" fillcolour="none" height="30" usefillcolor="1" isinstance="0" xmi.id="31" decon="0" localid="899998" multipleinstance="0" drawasactor="0" font="Bitstream Vera Sans,12,-1,5,50,0,1,0,0,0" />
-     <objectwidget usesdiagramfillcolour="1" width="67" usesdiagramusefillcolour="1" x="53" linecolour="none" y="48" instancename="" linewidth="none" usesdiagramlinewidth="1" usesdiagramlinecolour="1" fillcolour="none" height="30" usefillcolor="1" isinstance="0" xmi.id="347" decon="0" localid="899997" multipleinstance="0" drawasactor="0" font="Bitstream Vera Sans,12,-1,5,50,0,1,0,0,0" />
-    </widgets>
-    <messages>
-     <messagewidget usesdiagramfillcolour="1" width="119" usesdiagramusefillcolour="1" x="87" linecolour="none" y="136" operation="" linewidth="none" usesdiagramlinewidth="1" widgetbid="899999" usesdiagramlinecolour="1" fillcolour="none" height="8" usefillcolor="1" seqnum="" widgetaid="899997" isinstance="0" xmi.id="356" sequencemessagetype="1001" font="Bitstream Vera Sans,12,-1,5,50,0,0,0,0,0" />
-    </messages>
-    <associations/>
    </diagram>
   </diagrams>
   <listview>
