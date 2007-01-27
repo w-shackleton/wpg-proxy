@@ -1,0 +1,67 @@
+/* 
+ Java HTTP Proxy Library (wpg-proxy), 
+    more info at http://wpg-proxy.sourceforge.net/
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
+WPG Proxy Design Notes
+----------------------
+
+* ProxyServer is responsible for receiving client request and will for each
+  such request instantiate a ProxyConnection instance.  To each such 
+  connection is delegated the task of mediating between client and remote
+  server.  A proxy connection is instantiated with the appropriate sockets
+  (i.e., client and server) and maintains a reference to the parent proxy
+  server from whence it acquires request/response handlers.  The ProxyServer
+  may be multi-threaded and may create each ProxyConnection within a separate
+  thread.  Each ProxyConnection, however, need not be multi-threaded.
+  A ProxyServer may be instantiated on a multi-homed host by passing the
+  appropriate (network) interface address.  If no such address is passed 
+  then the ProxyServer listens on all addresses.
+
+* Requests from clients are passed through a series of RequestHandlers
+  before being sent to the remote server.  Responses from the remote server
+  are passed through a series of ResponseHandlers before been passed back
+  to the client.  A ProxyServer object is instantiated with these handlers
+  and the ProxyConnection objects it creates may refer back to the server
+  for information concerning handlers.  Typically a ProxyConnection will
+  iterater through these handlers within its proxy method (i.e., proxy is
+  a template method.)
+  Handlers provide callback (i.e., hooks) that implementors may (or may
+  not) choose to implement: init to initialize per-message state, handle
+  to perform the message processing tasks (e.g., add a header) and abort
+  to perform tasks that need to be done if handling fails (e.g., log the
+  event etc.)  The implementor of a handler is not required to determine
+  when these methods are called (that is the responsibility of the proxy
+  method of ProxyConnection.)
+  Handler may typically log traffic, read/amend HTTP headers or perform
+  security checks etc.
+
+* HttpUtil is a utility class that queries/manipulates HTTP traffic, e.g.,
+  it may query traffic for a list of headers or for message content.  It
+  is also capable of adding/removing HTTP headers etc.  A proxy ought not
+  be too intrusive, i.e., it should ignore traffic when permitted and 
+  must not be compelled to encapsulate all incoming/outgoing traffic hence
+  the choice of a utility class over an object domain entity.
+  The class is based on the HttpMessage type.
+
+* Failures of any aspect of the proxy service (e.g., failure to connect to
+  remove host, to perform a handler activity etc.) and dealt with by raising
+  the appropriate exception.  An exception hierarchy etc. needs to be defined.
+
+
+
