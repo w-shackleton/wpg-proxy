@@ -23,6 +23,6 @@
     <info organisation="jayasoft" module="wpg-proxy" />
     <dependencies>
         <dependency org="apache" name="log4j" rev="1.2.13" />
- 		<dependency org="junit" name="junit" rev="3.8" />
+        <dependency org="junit" name="junit" rev="4.1" />        
     </dependencies>
 </ivy-module>
