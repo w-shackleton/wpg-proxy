@@ -20,65 +20,94 @@
 -->
 
 <project xmlns:ivy="antlib:fr.jayasoft.ivy.ant" name="wpg-proxy" default="compile" basedir=".">
-
+    
     <description>WPG Proxy (http://wpg-proxy.sourceforge.net/)</description>
-
-	<property file="build.properties" />
-
-	<path id="wpg.class.path">
+    
+    <property file="build.properties" />
+    
+    <path id="wpg.class.path">
         <fileset dir="${wpg.proxy.lib}" includes="**/*.jar"/>
     </path>
-
-	<target name="libs" description="resolve JAR dependencies">
+    
+    <path id="wpg.class.path.run">    
+    <pathelement location="${wpg.proxy.dist}/wpgproxy.jar"/>
+    <path refid="wpg.class.path" />
+    </path>
+    
+    <path id="wpg.class.path.test">        
+    <pathelement location="${wpg.proxy.build}/tests.jar" />    
+    <path refid="wpg.class.path.run" />
+    </path>
+    
+    <target name="libs" description="resolve JAR dependencies">
         <ivy:retrieve />
     </target>
-
-     <target name="init">  
-          <mkdir dir="${wpg.proxy.build}/classes"/>
-          <mkdir dir="${wpg.proxy.build}/test"/>
-          <mkdir dir="${wpg.proxy.javadocs}"/>
-          <mkdir dir="${wpg.proxy.dist}"/>
-     </target>
-
-     <target name="clean" 
-				description="remove the compiled Java classes and JARs">  
-          <delete dir="${wpg.proxy.build}"/>
-          <delete dir="${wpg.proxy.javadocs}"/>
-          <delete dir="${wpg.proxy.dist}"/>
-     </target>
-
-     <target name="compile" depends="init"
-					description="build the proxy library JAR"> 
-          <javac srcdir="${wpg.proxy.src}" destdir="${wpg.proxy.build}/classes" 
-					classpathref="wpg.class.path"/> 
-		  <jar destfile="${wpg.proxy.dist}/wpgproxy.jar"
-       				basedir="${wpg.proxy.build}/classes"
-       				includes="*/**" />
-     </target>
-
-     <target name="test" depends="init" 
-					description="build the proxy unit and integration tests"> 
-          <javac srcdir="${wpg.proxy.test}" destdir="${wpg.proxy.build}/test"
-					classpathref="wpg.class.path" />
-     </target>
-
+    
+    <target name="init">  
+        <mkdir dir="${wpg.proxy.build}/classes"/>
+        <mkdir dir="${wpg.proxy.build}/test"/>
+        <mkdir dir="${wpg.proxy.javadocs}"/>
+        <mkdir dir="${wpg.proxy.dist}"/>
+    </target>
+    
+    <target name="clean" 
+            description="remove the compiled Java classes and JARs">  
+        <delete dir="${wpg.proxy.build}"/>
+        <delete dir="${wpg.proxy.javadocs}"/>
+        <delete dir="${wpg.proxy.dist}"/>
+    </target>
+    
+    <target name="compile" depends="init"
+            description="build the proxy library JAR"> 
+        <javac srcdir="${wpg.proxy.src}" destdir="${wpg.proxy.build}/classes" 
+               classpathref="wpg.class.path" debug="${wpg.proxy.debug}" debuglevel="lines">
+            <compilerarg value="-Xlint:unchecked"/>
+        </javac>
+        <jar destfile="${wpg.proxy.dist}/wpgproxy.jar">
+            <fileset dir="${wpg.proxy.build}/classes" includes="*/**"/>
+            <fileset dir="${wpg.proxy.src}" includes="*/**"/>
+        </jar>
+    </target>
+    
+    <target name="compile-test" depends="compile">
+        <javac classpathref="wpg.class.path.test"
+               srcdir="${wpg.proxy.test}" destdir="${wpg.proxy.build}/test"
+               debug="true" debuglevel="source"/>
+        <jar basedir="${wpg.proxy.build}/test" destfile="${wpg.proxy.build}/tests.jar" includes="**/*"/>
+    </target>
+    
+    <target name="test" depends="init,compile-test" 
+            description="build the proxy unit and integration tests">
+        <junit >
+            <formatter type="plain" usefile="false"/>
+            <classpath refid="wpg.class.path.test"/>            
+            <batchtest>
+                <fileset dir="${wpg.proxy.test}" includes="*/**"/>
+            </batchtest>
+        </junit>
+    </target>
+    
+    <target name="run" depends="compile">
+        <java fork="true" classpathref="wpg.class.path.run" classname="com.wpg.proxy.Proxy"/>
+    </target>
+    
     <target name="docs" depends="init"
-					description="generate project documentation">
-		<javadoc packagenames="com.wpg.proxy.*"
-				sourcepath="${wpg.proxy.src}"
-				defaultexcludes="yes"
-				destdir="${wpg.proxy.javadocs}"
-				author="true"
-				version="true"
-				use="true"
-				windowtitle="WPG Proxy">
+            description="generate project documentation">
+        <javadoc packagenames="com.wpg.proxy.*"
+                 sourcepath="${wpg.proxy.src}"
+                 defaultexcludes="yes"
+                 destdir="${wpg.proxy.javadocs}"
+                 author="true"
+                 version="true"
+                 use="true"
+                 windowtitle="WPG Proxy">
             <Header>
-				<![CDATA[<a href="http://sourceforge.net/projects/wpg-proxy/">Java HTTP Proxy Library Project Page</a>
+                <![CDATA[<a href="http://sourceforge.net/projects/wpg-proxy/">Java HTTP Proxy Library Project Page</a>
 						<br/><a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=185351&type=4" width="125" 
 							height="37" border="0" alt="SourceForge.net Logo" /></a>
-					]]></Header>
+            ]]></Header>
             <fileset dir="${wpg.proxy.src}" includes="*.java"/>
         </javadoc>
     </target>
-
+    
 </project>
