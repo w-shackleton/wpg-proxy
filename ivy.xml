@@ -22,7 +22,6 @@
 <ivy-module version="1.0">
     <info organisation="jayasoft" module="wpg-proxy" />
     <dependencies>
-        <dependency org="apache" name="commons-httpclient" rev="3.0-rc4" />
         <dependency org="apache" name="log4j" rev="1.2.13" />
  		<dependency org="junit" name="junit" rev="3.8" />
     </dependencies>
