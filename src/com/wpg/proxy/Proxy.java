@@ -66,9 +66,8 @@ public class Proxy extends Thread {
     public void shutdown() { running=false; }
     
     private Vector<HttpMessageProcessor> requestProcessors = new Vector<HttpMessageProcessor>();
-    private Vector<HttpMessageListener> requestListeners = new Vector<HttpMessageListener>();
+    private Vector<HttpMessageHandler> handlers = new Vector<HttpMessageHandler>();
     private Vector<HttpMessageProcessor> responseProcessors = new Vector<HttpMessageProcessor>();
-    private Vector<HttpMessageListener> responseListeners = new Vector<HttpMessageListener>();
     /** Add a new request processor */
     public void addRequestProcessor( HttpMessageProcessor hmp ) {
         requestProcessors.addElement( hmp );
@@ -77,13 +76,13 @@ public class Proxy extends Thread {
     public Vector<HttpMessageProcessor> getRequestProcessors(){
         return requestProcessors;
     }
-    /** Add a new request listener to receive incomming requests */
-    public void addRequestListener( HttpMessageListener hml ) {
-        requestListeners.addElement( hml );
+    /** Add a new response handler to receive incomming http responses, as well as the request */
+    public void addHandler( HttpMessageHandler hml ) {
+        handlers.addElement( hml );
     }
-    /** Get the list of request listeners */
-    public Vector<HttpMessageListener> getRequestListeners(){
-        return requestListeners;
+    /** Get the list of request handlers */
+    public Vector<HttpMessageHandler> getHandlers(){
+        return handlers;
     }
     /** Add a new response processor */
     public void addResponseProcessor( HttpMessageProcessor hmp ) {
@@ -92,14 +91,6 @@ public class Proxy extends Thread {
     /** Get the list of response processors */
     public Vector<HttpMessageProcessor> getResponseProcessors(){
         return responseProcessors;
-    }
-    /** Add a new response listener to receive incomming http responses, as well as the request */
-    public void addResponseListener( HttpMessageListener hml ) {
-        responseListeners.addElement( hml );
-    }
-    /** Get the list of response listeners */
-    public Vector<HttpMessageListener> getResponseListeners(){
-        return responseListeners;
     }
     
     /** Run registered HttpMessageProcessors on a HttpMessage and return it
@@ -124,45 +115,45 @@ public class Proxy extends Thread {
         return message;
     }
     
-    /** Run registered HttpMessageListeners on a HttpMessage */
-    private void runListeners( Vector listeners, Exception e ) {
-        runListeners( listeners, null, null, e );
+    /** Run registered HttpMessageHandlers on a HttpMessage */
+    private void runHandlers( Vector handlers, Exception e ) {
+        runHandlers( handlers, null, null, e );
     }
-    /** Run registered HttpMessageListeners on a HttpMessage */
-    private void runListeners( Vector listeners, HttpMessageRequest request ) {
-        runListeners( listeners, request, null, null );
+    /** Run registered HttpMessageHandlers on a HttpMessage */
+    private void runHandlers( Vector handlers, HttpMessageRequest request ) {
+        runHandlers( handlers, request, null, null );
     }
-    /** Run registered HttpMessageListeners on a HttpMessage */
-    private void runListeners( Vector listeners, HttpMessageResponse response ) {
-        runListeners( listeners, null, response, null );
+    /** Run registered HttpMessageHandlers on a HttpMessage */
+    private void runHandlers( Vector handlers, HttpMessageResponse response ) {
+        runHandlers( handlers, null, response, null );
     }
-    /** Run registered HttpMessageListeners on a HttpMessage */
-    private void runListeners( Vector listeners, HttpMessageRequest request, Exception e ) {
-        runListeners( listeners, request, null, e );
+    /** Run registered HttpMessageHandlers on a HttpMessage */
+    private void runHandlers( Vector handlers, HttpMessageRequest request, Exception e ) {
+        runHandlers( handlers, request, null, e );
     }
-    /** Run registered HttpMessageListeners on a HttpMessage */
-    private void runListeners( Vector listeners, HttpMessageResponse response, Exception e ) {
-        runListeners( listeners, null, response, e );
+    /** Run registered HttpMessageHandlers on a HttpMessage */
+    private void runHandlers( Vector handlers, HttpMessageResponse response, Exception e ) {
+        runHandlers( handlers, null, response, e );
     }
-    /** Run registered HttpMessageListeners on a HttpMessage */
-    private void runListeners( Vector listeners, HttpMessageRequest request, HttpMessageResponse response ) {
-        runListeners( listeners, request, response, null );
+    /** Run registered HttpMessageHandlers on a HttpMessage */
+    private void runHandlers( Vector handlers, HttpMessageRequest request, HttpMessageResponse response ) {
+        runHandlers( handlers, request, response, null );
     }
-    /** Run registered HttpMessageListeners on a HttpMessage */
-    private void runListeners( Vector listeners, HttpMessageRequest request, HttpMessageResponse response, Exception e) {
-        for(int i=0; i< listeners.size(); i++) {
-            logger.trace("Processing Request Listener "+ (i+1) +" of "+ listeners.size());
-            HttpMessageListener hml = (HttpMessageListener) listeners.elementAt(i);
+    /** Run registered HttpMessageHandlers on a HttpMessage */
+    private void runHandlers( Vector handlers, HttpMessageRequest request, HttpMessageResponse response, Exception e) {
+        for(int i=0; i< handlers.size(); i++) {
+            logger.trace("Processing Request Handler "+ (i+1) +" of "+ handlers.size());
+            HttpMessageHandler hml = (HttpMessageHandler) handlers.elementAt(i);
             if( response != null && request != null && e != null )
-                hml.failed(response, request, e);
+                hml.failedResponse(response, request, e);
             else if( request != null && e != null )
-                hml.failed(request, e);
+                hml.failedRequest(request, e);
             else if( e != null )
                 hml.failed(e);
             else if( response != null && request != null )
-                hml.received( response, request );
+                hml.receivedResponse( response, request );
             else if( request != null )
-                hml.received( request );
+                hml.receivedRequest( request );
         }
     }
     
@@ -320,7 +311,7 @@ public class Proxy extends Thread {
                 request = parseRequest(client);
             } catch (Exception e) {
                 logger.error("Exception while parsing the request: "+ e,e);
-                runListeners(getRequestListeners(),e);
+                runHandlers(getHandlers(),e);
                 client.close();
                 return;
             }
@@ -383,31 +374,30 @@ public class Proxy extends Thread {
                 return;
             }
             
-            runListeners(getRequestListeners(),request);
+            runHandlers(getHandlers(),request);
             
             HttpMessageResponse response = null;
             try {
                 response = executeRequest( request );
             } catch( Exception e ) {
                 logger.error("Exception while executing the request: "+ e,e);
-                runListeners(getRequestListeners(),request,e);
-                runListeners(getResponseListeners(),request,e);
+                runHandlers(getHandlers(),request,e);
                 client.close();
                 return;
             }
             
-            //run the request listener after a successful response fetch
-            runListeners(getRequestListeners(),request,response);
+            //run the request handler after a successful response fetch
+            runHandlers(getHandlers(),request,response);
             
-            //run response processors after the final request listeners
+            //run response processors after the final request handlers
             response = (HttpMessageResponse) runProcessors( getResponseProcessors(), response);
             if( response == null ) {
                 client.close();
                 return;
             }
             
-            //run response listeners after response processors
-            runListeners(getResponseListeners(),request,response);
+            //run response handlers after response processors
+            runHandlers(getHandlers(),request,response);
             
             try {
                 client.configureBlocking(false);
@@ -415,8 +405,7 @@ public class Proxy extends Thread {
                 clientKey.attach(response);
             } catch( Exception e ) {
                 logger.error("Exception while returning the response: "+ e,e);
-                runListeners(getRequestListeners(),request,response,e);
-                runListeners(getResponseListeners(),request,response,e);
+                runHandlers(getHandlers(),request,response,e);
                 client.close();
                 return;
             }
@@ -487,7 +476,7 @@ public class Proxy extends Thread {
                     client.close();
                 } catch( Exception e ) {
                     logger.error("Exception while returning the response: "+ e,e);
-                    runListeners(getResponseListeners(),response,e);
+                    runHandlers(getHandlers(),response,e);
                     client.close();
                     return;
                 }
