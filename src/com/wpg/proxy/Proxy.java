@@ -386,9 +386,6 @@ public class Proxy extends Thread {
                 return;
             }
             
-            //run the request handler after a successful response fetch
-            runHandlers(getHandlers(),request,response);
-            
             //run response processors after the final request handlers
             response = (HttpMessageResponse) runProcessors( getResponseProcessors(), response);
             if( response == null ) {
