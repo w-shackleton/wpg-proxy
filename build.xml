@@ -110,6 +110,14 @@
         </javadoc>
     </target>
 
+	<target name="docs-install" depends="docs" description="scp javadocs to sourceforge web space for this project">
+		<input message="Please enter user:" addproperty="scp.user" />
+		<input message="Please enter password:" addproperty="scp.pass" />
+		<scp todir="${scp.user}:${scp.pass}@shell.sourceforge.net:/home/groups/w/wp/wpg-proxy/htdocs">
+			<fileset dir="${wpg.proxy.javadocs}" />
+		</scp>
+	</target>
+
 	<target name="pmd" depends="compile" description="run PMD against the project looking for several things">
 			<taskdef name="pmd" classname="net.sourceforge.pmd.ant.PMDTask" />
 			<pmd shortFilenames="true" targetjdk="1.5">
