@@ -519,7 +519,7 @@ public class Proxy extends Thread {
         request.setVersion( st.nextToken() );
         
         String line = null;
-        Vector headers = new Vector();
+        Vector<String> headers = new Vector<String>();
         while( (line = is.readLine()).length() > 0 ) {
             headers.addElement(line.replaceAll("[\r\n]+",""));
             logger.trace("request line: \""+ line +"\"");

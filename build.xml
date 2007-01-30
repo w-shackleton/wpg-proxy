@@ -109,5 +109,37 @@
             <fileset dir="${wpg.proxy.src}" includes="*.java"/>
         </javadoc>
     </target>
-    
+
+	<target name="pmd" depends="compile" description="run PMD against the project looking for several things">
+			<taskdef name="pmd" classname="net.sourceforge.pmd.ant.PMDTask" />
+			<pmd shortFilenames="true" targetjdk="1.5">
+					<ruleset>basic</ruleset>
+					<ruleset>design</ruleset>
+					<ruleset>imports</ruleset>
+					<ruleset>logging-java</ruleset>
+					<ruleset>sunsecure</ruleset>
+					<ruleset>j2ee</ruleset>
+					<formatter type="html" toFile="PMDReportBasic.html" linkPrefix="http://pmd.sourceforge.net/xref/" />
+					<fileset dir="${wpg.proxy.src}" />
+			</pmd>
+			<pmd shortFilenames="true" targetjdk="1.5">
+					<ruleset>naming</ruleset>
+					<formatter type="html" toFile="PMDReportNaming.html" linkPrefix="http://pmd.sourceforge.net/xref/" />
+					<fileset dir="${wpg.proxy.src}" />
+			</pmd>
+			<pmd shortFilenames="true" targetjdk="1.5">
+					<ruleset>optimizations</ruleset>
+					<formatter type="html" toFile="PMDReportOptimizations.html" linkPrefix="http://pmd.sourceforge.net/xref/" />
+					<fileset dir="${wpg.proxy.src}" />
+			</pmd>
+			<pmd shortFilenames="true" targetjdk="1.5">
+					<ruleset>coupling</ruleset>
+					<ruleset>strings</ruleset>
+					<ruleset>unusedcode</ruleset>
+					<formatter type="html" toFile="PMDReportExtras.html" linkPrefix="http://pmd.sourceforge.net/xref/" />
+					<fileset dir="${wpg.proxy.src}" />
+			</pmd>
+	</target>
+
+
 </project>

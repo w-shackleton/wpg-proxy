@@ -24,7 +24,7 @@ import java.net.URISyntaxException;
 
 /** HTTP Request Message Class, this is the message received from the client for processing */
 public class HttpMessageRequest extends HttpMessage {
-    private String[] methodStrings = {"CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT", "TRACE"};
+    private final String[] methodStrings = {"CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT", "TRACE"};
     private int method;
     private URI uri;
     

@@ -51,7 +51,7 @@ public abstract class HttpMessage {
     public static final String HEADER_TRANSFER_ENCODING = "transfer-encoding";
     public static final String HEADER_USER_AGENT = "user-agent";
     
-    protected Logger logger = Logger.getLogger(HttpMessage.class);
+    protected static final Logger logger = Logger.getLogger(HttpMessage.class);
     
     protected byte[] body;
     protected ByteBuffer data;
@@ -64,32 +64,32 @@ public abstract class HttpMessage {
     protected String protocolVersion = "1.0";
     protected boolean isSecure = false;
     protected Map<String,List<String>> headers = null;
-    protected Vector headerOrder = new Vector();
+    protected Vector<String> headerOrder = new Vector<String>();
     
     /** Set body content to input byte[] */
-    public void setBodyContent( byte[] b ) { body=b; updateContentLength(); }
+    public void setBodyContent( final byte[] b ) { body=b.clone(); updateContentLength(); }
     /** Add byte[] to body content */
-    public void addToBody( byte[] b, int s ) {
-        if( body != null ) {
+    public void addToBody( final byte[] b, final int s ) {
+        if( body == null ) {
+            body = new byte[s];
+            System.arraycopy(b, 0, body, 0, s);
+        } else {
             byte[] tmp = new byte[ body.length + s ];
             System.arraycopy(body, 0, tmp, 0, body.length);
             System.arraycopy(b, 0, tmp, body.length, s);
             body=tmp;
-        } else {
-            body = new byte[s];
-            System.arraycopy(b, 0, body, 0, s);
         }
         updateContentLength();
     }
     /** Update the content length header to the size of the new body */
     protected void updateContentLength() {
-        Vector v = new Vector();
+        Vector<Integer> v = new Vector<Integer>();
         v.addElement(body.length);
         //setHeader(HEADER_CONTENT_LENGTH, v);
     }
     /** Get raw content as an Array of Bytes */
     public byte[] getBodyContent(){
-        return body;
+        return body.clone();
     }
     /** Get the content as a Stream of Bytes */
     public java.io.ByteArrayInputStream getBodyContentStream() {
@@ -135,14 +135,14 @@ public abstract class HttpMessage {
     /** Get All Headers as a Map */
     public Map<String,List<String>> getHeaders() { return headers; }
     /** Set All Headers from a Map*/
-    public void setHeaders( Map m ) {
-        headers = new Hashtable();
-        headerOrder = new Vector();
+    public void setHeaders( Map<String,List<String>> m ) {
+        headers = new Hashtable<String,List<String>>();
+        headerOrder = new Vector<String>();
         Iterator it = m.keySet().iterator();
         while( it.hasNext() ) {
             String key = ((String) it.next()).toLowerCase();
-            List roList = (List) m.get(key);
-            Vector items = new Vector(roList.size());
+            List<String> roList = (List<String>) m.get(key);
+            Vector<String> items = new Vector<String>(roList.size());
             items.addAll(roList);
             logger.trace("Adding Header: "+ key +"["+ items +"]");
             if( key != null)
@@ -154,26 +154,26 @@ public abstract class HttpMessage {
         return headers.get(header);
     }
     /** Set a specific Header from a List */
-    public void setHeader( String s, Vector l ) {
-        s = s.toLowerCase();
+    public void setHeader( String h, Vector<String> l ) {
+        String s = h.toLowerCase();
         if(headers == null)
-            headers = new Hashtable();
+            headers = new Hashtable<String,List<String>>();
         headers.put(s,l);
         if( ! headerOrder.contains(s) )
             headerOrder.addElement(s);
     }
     /** Add to a specific Header from a String */
-    public void addHeader( String s, String item ) {
-        s = s.toLowerCase();
+    public void addHeader( String h, String item ) {
+        String s = h.toLowerCase();
         if(headers == null)
-            headers = new Hashtable();
+            headers = new Hashtable<String,List<String>>();
         if( headers.get(s) == null ) {
-            headers.put(s,new Vector());
+            headers.put(s,new Vector<String>());
             headerOrder.addElement(s);
         }
-        ((Vector)headers.get(s)).addElement(item);
+        ((Vector<String>)headers.get(s)).addElement(item);
         logger.trace("Adding Header: "+ s +"["+ item +"]");
-        if(s.toLowerCase().equals("host")) {
+        if( "host".equalsIgnoreCase(s) ) {
             if( item.indexOf(':') == -1 ) {
                 setToHost(item);
             } else {
