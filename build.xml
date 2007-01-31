@@ -60,12 +60,16 @@
     <target name="compile" depends="init"
             description="build the proxy library JAR"> 
         <javac srcdir="${wpg.proxy.src}" destdir="${wpg.proxy.build}/classes" 
-               classpathref="wpg.class.path" debug="${wpg.proxy.debug}" debuglevel="lines">
+               classpathref="wpg.class.path" debug="${wpg.proxy.debug}" debuglevel="source,lines,vars" target="1.5" source="1.5" >
             <compilerarg value="-Xlint:unchecked"/>
         </javac>
         <jar destfile="${wpg.proxy.dist}/wpgproxy.jar">
+			<manifest>
+				<attribute name="Main-Class" value="com.wpg.proxy.Proxy" />	
+			</manifest>
             <fileset dir="${wpg.proxy.build}/classes" includes="*/**"/>
             <fileset dir="${wpg.proxy.src}" includes="*/**"/>
+            <fileset dir="${wpg.proxy.resources}" includes="*/**"/>
         </jar>
     </target>
     

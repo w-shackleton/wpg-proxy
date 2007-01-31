@@ -89,6 +89,8 @@ public abstract class HttpMessage {
     }
     /** Get raw content as an Array of Bytes */
     public byte[] getBodyContent(){
+		if( body == null )
+			return null;
         return body.clone();
     }
     /** Get the content as a Stream of Bytes */

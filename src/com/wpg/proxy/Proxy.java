@@ -140,7 +140,11 @@ public class Proxy extends Thread {
         runHandlers( handlers, request, response, null );
     }
     /** Run registered HttpMessageHandlers on a HttpMessage */
-    private void runHandlers( Vector handlers, HttpMessageRequest request, HttpMessageResponse response, Exception e) {
+    private void runHandlers( Vector handlers, final HttpMessageRequest request, final HttpMessageResponse response, final Exception e) {
+		if( handlers.isEmpty() ) {
+			logger.info("No handlers registered, continuing");
+			return;
+		}
         for(int i=0; i< handlers.size(); i++) {
             logger.trace("Processing Request Handler "+ (i+1) +" of "+ handlers.size());
             HttpMessageHandler hml = (HttpMessageHandler) handlers.elementAt(i);
