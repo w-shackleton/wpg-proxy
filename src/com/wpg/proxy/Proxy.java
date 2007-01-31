@@ -26,6 +26,7 @@ import java.nio.channels.*;
 import java.nio.charset.*;
 
 import java.util.*;
+import java.text.NumberFormat;
 import java.security.*;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLServerSocket;
@@ -47,6 +48,7 @@ import org.apache.log4j.PropertyConfigurator;
  */
 public class Proxy extends Thread {
     private static Logger logger = Logger.getLogger(Proxy.class);
+	private ProxyStatistics stats = new ProxyStatistics();
     private InetAddress inetAddr = null;
     private int port = 8080;
     private int securePort = 14111;
@@ -64,6 +66,11 @@ public class Proxy extends Thread {
     public boolean isRunning() { return running; }
     /** stop the proxy server */
     public void shutdown() { running=false; }
+	private boolean statusBrowser=false;
+	/** is the status browser capability enabled? */
+	public boolean isStatusBrowserEnabled() { return statusBrowser; }
+	/** enable or dissable the status browser capability */
+	public void enableStatusBrowser( boolean enable ) { statusBrowser=enable; }
     
     private Vector<HttpMessageProcessor> requestProcessors = new Vector<HttpMessageProcessor>();
     private Vector<HttpMessageHandler> handlers = new Vector<HttpMessageHandler>();
@@ -302,8 +309,25 @@ public class Proxy extends Thread {
             }
         }
     }
+
+	/** method to determin if the target of this request is the proxy server itself */
+	private boolean isLocalRequest( final String targetHost, final int targetPort ) {
+		logger.trace("Checking for local request: "+ targetHost +":"+ targetPort +" == "+ inetAddr.getHostName() +":"+ this.port +" or "+ inetAddr.getHostAddress());
+		if( ( inetAddr.getHostName().startsWith(targetHost) || targetHost.equals( inetAddr.getHostAddress() ) ) && targetPort == this.port ) 
+			return true;
+		return false;
+	}
+
+	private void stopTransaction( long startTimeStamp, int status ) {
+		long endTimeStamp = System.currentTimeMillis();
+		long duration = endTimeStamp - startTimeStamp;
+		logger.trace("Duration: "+ duration);
+		stats.addDuration( (double) (duration / 1000) );
+		stats.incrementTransactionCount( status );
+	}
     
     private void processConnection( SelectionKey key ) throws IOException {
+		long startTimeStamp = System.currentTimeMillis();
         if(key.isValid() && key.isAcceptable()) {
             logger.trace("Event found, isAcceptable");
             ServerSocketChannel server = (ServerSocketChannel) key.channel();
@@ -314,11 +338,17 @@ public class Proxy extends Thread {
             try {
                 request = parseRequest(client);
             } catch (Exception e) {
+				stopTransaction( startTimeStamp, ProxyStatistics.FAILURE );
                 logger.error("Exception while parsing the request: "+ e,e);
                 runHandlers(getHandlers(),e);
                 client.close();
                 return;
             }
+
+			if( isStatusBrowserEnabled() && isLocalRequest( request.getToHost(), request.getToPort() ) ) {
+				processLocalRequest( request, client );
+				return;
+			}
             
             //TODO implement HTTP/1.1 RFC2817 TLS OPTIONS "Upgrade" request as well as HTTP/1.0 CONNECT
             if( request.getMethod().equals("CONNECT") ) {
@@ -374,9 +404,11 @@ public class Proxy extends Thread {
             
             request = (HttpMessageRequest) runProcessors( getRequestProcessors(), request);
             if( request == null ) {
+				stopTransaction( startTimeStamp, ProxyStatistics.STOPPED );
                 client.close();
                 return;
             }
+
             
             runHandlers(getHandlers(),request);
             
@@ -384,6 +416,7 @@ public class Proxy extends Thread {
             try {
                 response = executeRequest( request );
             } catch( Exception e ) {
+				stopTransaction( startTimeStamp, ProxyStatistics.FAILURE );
                 logger.error("Exception while executing the request: "+ e,e);
                 runHandlers(getHandlers(),request,e);
                 client.close();
@@ -393,6 +426,7 @@ public class Proxy extends Thread {
             //run response processors after the final request handlers
             response = (HttpMessageResponse) runProcessors( getResponseProcessors(), response);
             if( response == null ) {
+				stopTransaction( startTimeStamp, ProxyStatistics.STOPPED );
                 client.close();
                 return;
             }
@@ -405,6 +439,7 @@ public class Proxy extends Thread {
                 SelectionKey clientKey = client.register(selector, SelectionKey.OP_WRITE);
                 clientKey.attach(response);
             } catch( Exception e ) {
+				stopTransaction( startTimeStamp, ProxyStatistics.FAILURE );
                 logger.error("Exception while returning the response: "+ e,e);
                 runHandlers(getHandlers(),request,response,e);
                 client.close();
@@ -476,6 +511,7 @@ public class Proxy extends Thread {
                     client.write(buffer);
                     client.close();
                 } catch( Exception e ) {
+					stopTransaction( startTimeStamp, ProxyStatistics.FAILURE );
                     logger.error("Exception while returning the response: "+ e,e);
                     runHandlers(getHandlers(),response,e);
                     client.close();
@@ -496,12 +532,14 @@ public class Proxy extends Thread {
                     client.write(buffer);
                     client.close();
                 } catch( Exception e ) {
+					stopTransaction( startTimeStamp, ProxyStatistics.FAILURE );
                     logger.error("Exception while returning the response: "+ e,e);
                     client.close();
                     return;
                 }
             }
         }
+		stopTransaction( startTimeStamp, ProxyStatistics.SUCCESS );
     }
     
     private HttpMessageRequest parseRequest( SocketChannel socket ) throws Exception {
@@ -887,6 +925,63 @@ public class Proxy extends Thread {
         }
         
     }
+
+	/*internal method to collect the statistics and return that information to the browser/user making the request*/
+	private void processLocalRequest( HttpMessageRequest request, SocketChannel client ) {
+		logger.trace("Processing a local statistics request");
+		StringBuffer sb = new StringBuffer("<html><head><title>WPG Proxy Statistics</title></head><body>\r\n");
+		sb.append("<H1>WPG Proxy Statistics:</H1>\r\n");
+		sb.append("Number of Transactions Processed Total: <b>"+ stats.getTransactionCount() +"</b><br>\r\n");
+		sb.append("<ul>\r\n");
+		sb.append("<li>Completed Successfully: <b>"+ stats.getSuccessTransactions() +"</b></li>\r\n");
+		sb.append("<li>Stopped Due to Processor: <b>"+ stats.getStoppedTransactions() +"</b></li>\r\n");
+		sb.append("<li>Failed Due To Errors: <b>"+ stats.getFailureTransactions() +"</b></li>\r\n");
+		sb.append("</ul><br>\r\n");
+		sb.append("Transaction Statistics:\r\n");
+		sb.append("<ul>\r\n");
+		NumberFormat form = NumberFormat.getInstance();
+		form.setMaximumFractionDigits(3);
+		form.setMinimumFractionDigits(3);
+		sb.append("<li>Minimum Transaction Time: <b>"+ form.format(stats.getDurationMin()) +"</b></li>\r\n");
+		sb.append("<li>Average Transaction Time: <b>"+ form.format(stats.getDurationAvg()) +"</b></li>\r\n");
+		sb.append("<li>Maximum Transaction Time: <b>"+ form.format(stats.getDurationMax()) +"</b></li>\r\n");
+		sb.append("<li>Transaction StdDev: <b>"+ form.format(stats.getDurationStdDev()) +"</b></li>\r\n");
+		sb.append("</ul><br>\r\n");
+		sb.append("Registered Processors and Handlers:\r\n");
+		sb.append("<ul>\r\n");
+		sb.append("<li>Request Processors Registered: <b>"+ requestProcessors.size() +"</b></li>\r\n");
+		sb.append("<li>Message Handlers Registered: <b>"+ handlers.size() +"</b></li>\r\n");
+		sb.append("<li>Response Processors Registered: <b>"+ responseProcessors.size() +"</b></li>\r\n");
+		sb.append("</ul><br>\r\n");
+		sb.append("</body></html>\r\n");
+		try {
+			client.configureBlocking(false);
+			SelectionKey clientKey = client.register(selector, SelectionKey.OP_WRITE);
+			ByteBuffer buf = ByteBuffer.allocateDirect(1024*10);
+			buf.clear();
+			buf.put( "HTTP/1.0 200 OK".getBytes() ); buf.put((byte)'\r'); buf.put((byte)'\n');
+			buf.put("Server: WPG-Proxy/1.0".getBytes() ); buf.put((byte)'\r'); buf.put((byte)'\n');
+			buf.put("cache-control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0".getBytes() ); buf.put((byte)'\r'); buf.put((byte)'\n');
+			buf.put("pragma: no-cache".getBytes() ); buf.put((byte)'\r'); buf.put((byte)'\n');
+			buf.put("connection: close".getBytes() ); buf.put((byte)'\r'); buf.put((byte)'\n');
+			buf.put("transfer-encoding: chunked".getBytes() ); buf.put((byte)'\r'); buf.put((byte)'\n');
+			buf.put("content-type: text/html".getBytes() ); buf.put((byte)'\r'); buf.put((byte)'\n');
+			buf.put((byte)'\r');
+			buf.put((byte)'\n');
+			//buf.put( Integer.toString(sb.toString().getBytes().length).getBytes() );
+			//buf.put((byte)'\r');
+			//buf.put((byte)'\n');
+			buf.put( sb.toString().getBytes() );
+			buf.put((byte)'\r');
+			buf.put((byte)'\n');
+			buf.flip();
+			clientKey.attach(buf);
+		} catch( Exception e ) {
+			logger.error("Exception while returning statistics web page: "+ e, e);
+		}
+		return;
+	}
+
 /*
         public void spoofSSH( Socket s, RequestObject ro ) throws Exception {
                 //browser streams
@@ -961,6 +1056,7 @@ public class Proxy extends Thread {
                 logger.warn("Error creating a temporary file for proxy keystore ssl use: Exception: "+ ex);
             }
             Proxy proxy = new Proxy( java.net.InetAddress.getByName("127.0.0.1"), 8081, 50, keyFile.getPath(), "spassword".toCharArray(), "kpassword".toCharArray() );
+			proxy.enableStatusBrowser(true);
             proxy.start();
         }catch( java.net.UnknownHostException e ) {
             logger.fatal("Error resolving host: "+ e,e);
