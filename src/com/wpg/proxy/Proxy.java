@@ -26,7 +26,6 @@ import java.nio.channels.*;
 import java.nio.charset.*;
 
 import java.util.*;
-import java.text.NumberFormat;
 import java.security.*;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLServerSocket;
@@ -176,6 +175,7 @@ public class Proxy extends Thread {
         setKeystoreFilename( keyfile );
         setKeystorePassword( spass );
         setKeystoreKeysPassword( kpass );
+		stats.setProxy(this);
     }
     
     /** Creates a new Proxy without ssl support */
@@ -183,6 +183,7 @@ public class Proxy extends Thread {
         setInetAddress( inetAddr );
         setPort( port );
         setBacklog( backlog );
+		stats.setProxy(this);
     }
     
     /** Set the address to listen for new requests on */
@@ -929,31 +930,6 @@ public class Proxy extends Thread {
 	/*internal method to collect the statistics and return that information to the browser/user making the request*/
 	private void processLocalRequest( HttpMessageRequest request, SocketChannel client ) {
 		logger.trace("Processing a local statistics request");
-		StringBuffer sb = new StringBuffer("<html><head><title>WPG Proxy Statistics</title></head><body>\r\n");
-		sb.append("<H1>WPG Proxy Statistics:</H1>\r\n");
-		sb.append("Number of Transactions Processed Total: <b>"+ stats.getTransactionCount() +"</b><br>\r\n");
-		sb.append("<ul>\r\n");
-		sb.append("<li>Completed Successfully: <b>"+ stats.getSuccessTransactions() +"</b></li>\r\n");
-		sb.append("<li>Stopped Due to Processor: <b>"+ stats.getStoppedTransactions() +"</b></li>\r\n");
-		sb.append("<li>Failed Due To Errors: <b>"+ stats.getFailureTransactions() +"</b></li>\r\n");
-		sb.append("</ul><br>\r\n");
-		sb.append("Transaction Statistics:\r\n");
-		sb.append("<ul>\r\n");
-		NumberFormat form = NumberFormat.getInstance();
-		form.setMaximumFractionDigits(3);
-		form.setMinimumFractionDigits(3);
-		sb.append("<li>Minimum Transaction Time: <b>"+ form.format(stats.getDurationMin()) +"</b></li>\r\n");
-		sb.append("<li>Average Transaction Time: <b>"+ form.format(stats.getDurationAvg()) +"</b></li>\r\n");
-		sb.append("<li>Maximum Transaction Time: <b>"+ form.format(stats.getDurationMax()) +"</b></li>\r\n");
-		sb.append("<li>Transaction StdDev: <b>"+ form.format(stats.getDurationStdDev()) +"</b></li>\r\n");
-		sb.append("</ul><br>\r\n");
-		sb.append("Registered Processors and Handlers:\r\n");
-		sb.append("<ul>\r\n");
-		sb.append("<li>Request Processors Registered: <b>"+ requestProcessors.size() +"</b></li>\r\n");
-		sb.append("<li>Message Handlers Registered: <b>"+ handlers.size() +"</b></li>\r\n");
-		sb.append("<li>Response Processors Registered: <b>"+ responseProcessors.size() +"</b></li>\r\n");
-		sb.append("</ul><br>\r\n");
-		sb.append("</body></html>\r\n");
 		try {
 			client.configureBlocking(false);
 			SelectionKey clientKey = client.register(selector, SelectionKey.OP_WRITE);
@@ -968,10 +944,7 @@ public class Proxy extends Thread {
 			buf.put("content-type: text/html".getBytes() ); buf.put((byte)'\r'); buf.put((byte)'\n');
 			buf.put((byte)'\r');
 			buf.put((byte)'\n');
-			//buf.put( Integer.toString(sb.toString().getBytes().length).getBytes() );
-			//buf.put((byte)'\r');
-			//buf.put((byte)'\n');
-			buf.put( sb.toString().getBytes() );
+			buf.put( stats.getHTMLPage().getBytes() );
 			buf.put((byte)'\r');
 			buf.put((byte)'\n');
 			buf.flip();

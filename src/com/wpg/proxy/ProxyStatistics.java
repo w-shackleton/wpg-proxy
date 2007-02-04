@@ -20,6 +20,7 @@
 package com.wpg.proxy;
 
 import java.util.Vector;
+import java.text.NumberFormat;
 
 import org.apache.log4j.Logger;
 
@@ -39,6 +40,26 @@ public class ProxyStatistics {
 	private long cntDuration = 0;
 	private Vector<Double> durations = new Vector<Double>();
 	private double stdDevDuration = -1; //this is never the case because stddev is the sqrt of variance, thus it tells us to init this
+	private Proxy proxy = null;
+	private String title = "WPG Proxy Statistics";
+
+	/**reset all counters to init values*/
+	public void reset() {
+		successCount = 0;
+		failureCount = 0;
+		stoppedCount = 0;
+		minDuration = -1;
+		maxDuration = 0.0;
+		sumDuration = 0.0;
+		cntDuration = 0;
+		durations.clear();
+		stdDevDuration = -1; 
+	}
+
+	/**set title of web pages returned*/
+	public void setTitle( String t ) { title=t; }
+	/**get title of web pages returned*/
+	public String getTitle() { return title; }
 
 	/**get successful transaction count*/
 	public long getSuccessTransactions() { return successCount; }
@@ -67,13 +88,27 @@ public class ProxyStatistics {
 		sumDuration += duration;
 		cntDuration++;
 		durations.addElement(duration);
-		stdDevDuration=-1;
+		stdDevDuration=-1; //we set this to -1 in order to figure out we need to recalculate this, because a sqrt is never negative ;)
 	}
 
 	public double getDurationCnt() { return cntDuration; }
 	public double getDurationMin() { return minDuration; }
 	public double getDurationMax() { return maxDuration; }
 	public double getDurationAvg() { return sumDuration/cntDuration; }
+	/**
+		Calculate Standard Deviation as the SQRT of variance based on the formula from:<br>
+		<a href="http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Algorithm_II">WIKI Variance Calculation Page: Algorithm II</a><p>
+		<pre>
+			double mean = getDurationAvg();
+			double sum = 0.0;
+			for( int i=0; i< durations.size(); i++ ) {
+				double duration = durations.elementAt(i);
+				sum += Math.pow(duration - mean, 2);	
+			}
+			stdDevDuration = Math.sqrt( sum / (durations.size() -1) );
+		</pre><p>
+		note: Future calculations of this may change based on the whims of man<br>
+	*/
 	public double getDurationStdDev() { 
 		if( stdDevDuration < 0 ) {
 			double mean = getDurationAvg();
@@ -85,5 +120,40 @@ public class ProxyStatistics {
 			stdDevDuration = Math.sqrt( sum / (durations.size() -1) );
 		} 
 		return stdDevDuration;
+	}
+
+	/**Set Proxy object to query*/
+	public void setProxy( Proxy p ) { proxy = p; }
+	/**Get Proxy for this statistic collector*/
+	public Proxy getProxy() { return proxy; }
+
+	/**Get the html page for this request*/
+	public String getHTMLPage() {
+		StringBuffer sb = new StringBuffer("<html><head><title>"+ getTitle() +"</title></head><body>\r\n");
+		sb.append("<H1>"+ getTitle() +":</H1>\r\n");
+		sb.append("Number of Transactions Processed Total: <b>"+ getTransactionCount() +"</b><br>\r\n");
+		sb.append("<ul>\r\n");
+		sb.append("<li>Completed Successfully: <b>"+ getSuccessTransactions() +"</b></li>\r\n");
+		sb.append("<li>Stopped Due to Processor: <b>"+ getStoppedTransactions() +"</b></li>\r\n");
+		sb.append("<li>Failed Due To Errors: <b>"+ getFailureTransactions() +"</b></li>\r\n");
+		sb.append("</ul><br>\r\n");
+		sb.append("Transaction Statistics:\r\n");
+		sb.append("<ul>\r\n");
+		NumberFormat form = NumberFormat.getInstance();
+		form.setMaximumFractionDigits(3);
+		form.setMinimumFractionDigits(3);
+		sb.append("<li>Minimum Transaction Time: <b>"+ form.format(getDurationMin()) +"</b></li>\r\n");
+		sb.append("<li>Average Transaction Time: <b>"+ form.format(getDurationAvg()) +"</b></li>\r\n");
+		sb.append("<li>Maximum Transaction Time: <b>"+ form.format(getDurationMax()) +"</b></li>\r\n");
+		sb.append("<li>Transaction StdDev: <b>"+ form.format(getDurationStdDev()) +"</b></li>\r\n");
+		sb.append("</ul><br>\r\n");
+		sb.append("Registered Processors and Handlers:\r\n");
+		sb.append("<ul>\r\n");
+		sb.append("<li>Request Processors Registered: <b>"+ proxy.getRequestProcessors().size() +"</b></li>\r\n");
+		sb.append("<li>Message Handlers Registered: <b>"+ proxy.getHandlers().size() +"</b></li>\r\n");
+		sb.append("<li>Response Processors Registered: <b>"+ proxy.getResponseProcessors().size() +"</b></li>\r\n");
+		sb.append("</ul><br>\r\n");
+		sb.append("</body></html>\r\n");
+		return sb.toString();
 	}
 }
