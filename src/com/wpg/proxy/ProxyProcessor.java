@@ -217,7 +217,7 @@ public class ProxyProcessor {
                                 logger.trace("200 Connection established reply sent");
                                  */
                 //SSLServerThread sslServerThread = new SSLServerThread( securePort, request.getToHost(), request.getToPort(), client.socket() );
-                SSLServerThread sslServerThread = new SSLServerThread( securePort, request.getToHost(), request.getToPort(), client.socket() );
+                SSLServerThread sslServerThread = new SSLServerThread( securePort, request.getToHost(), 443, client.socket() );
                 sslServerThread.start();
                 return;
             }
@@ -679,84 +679,95 @@ public class ProxyProcessor {
                 OutputStream os = clientSocket.getOutputStream();
                 byte[] msg = new String("HTTP/1.0 200 Connection established\r\nProxy-agent: WPG-RecordingProxy/1.0\r\n\r\n").getBytes();
                 os.write(msg);
+
+				IORedirector c2s, s2c;
+                c2s = new IORedirector( clientSocket.getInputStream(), targetSocket.getOutputStream());
+                c2s.setName("remoteClient->remoteServer");
+                c2s.start();
+                Thread.sleep(500);
+
+                s2c = new IORedirector( targetSocket.getInputStream(), clientSocket.getOutputStream());
+                s2c.setName("remoteServer->remoteClient");
+                s2c.start();
+                Thread.sleep(500);
                 
-                /** send all client requests on to the local client */
-                c2l = new IORedirector();
-                c2l.in = clientSocket.getInputStream();
-                c2l.out = localClientSocket.getOutputStream();
+				/* let's just get a regular proxy working for now, so the below is commented out
+                /** send all client requests on to the local client * /
+                c2l = new IORedirector( clientSocket.getInputStream(), localClientSocket.getOutputStream());
                 c2l.setName("remoteCleint->localClient");
                 c2l.start();
                 Thread.sleep(500);
                 
-                /** send all local client requests on to the client */
-                l2c = new IORedirector();
-                l2c.in = localClientSocket.getInputStream();
-                l2c.out = clientSocket.getOutputStream();
+                /** send all local client requests on to the client * /
+                l2c = new IORedirector( localClientSocket.getInputStream(), clientSocket.getOutputStream());
                 l2c.setName("localClient->remoteClient");
                 l2c.start();
                 Thread.sleep(500);
                 
-                /** send all client requests on to the local ssl server */
-                l2s = new IORedirector();
-                l2s.in = localClientSocket.getInputStream();
-                l2s.out = server.getOutputStream();
+                /** send all client requests on to the local ssl server * /
+                l2s = new IORedirector( localClientSocket.getInputStream(), server.getOutputStream());
                 l2s.setName("localClient->localServer");
                 l2s.start();
                 Thread.sleep(500);
                 
-                /**forward all local ssl server input to the client output */
-                s2l = new IORedirector();
-                s2l.in = server.getInputStream();
-                s2l.out = localClientSocket.getOutputStream();
+                /**forward all local ssl server input to the client output * /
+                s2l = new IORedirector( server.getInputStream(), localClientSocket.getOutputStream());
                 s2l.setName("localServer->localClient");
                 s2l.start();
                 Thread.sleep(500);
                 
-                /**forward all server traffic to target server */
-                s2t = new IORedirector();
-                s2t.in = server.getInputStream();
-                s2t.out = targetSocket.getOutputStream();
+                /**forward all server traffic to target server * /
+                s2t = new IORedirector( server.getInputStream(), targetSocket.getOutputStream());
                 s2t.setName("localServer->remoteServer");
                 s2t.start();
                 Thread.sleep(500);
                 
-                t2s = new IORedirector();
-                t2s.in = targetSocket.getInputStream();
-                t2s.out = server.getOutputStream();
+                t2s = new IORedirector( targetSocket.getInputStream(), server.getOutputStream() );
                 t2s.setName("remoteServer->localServer");
                 t2s.start();
                 Thread.sleep(500);
                 
                 logger.trace("Everything setup, start another handshake");
                 localClientSocket.startHandshake();
+				*/
             }catch( IOException e ) {
                 logger.error("IOException while starting IORedirector Threads: "+ e,e);
                 return;
             }catch( InterruptedException e ) { }
             
-            run=true;
-            while(run) { }
+							/*
+							run=true;
+							while(run) { }
+							*/
         }
         
         /** internal thread to read packets from client and forward to remote */
         private class IORedirector extends Thread {
-            public InputStream in = null;
-            public OutputStream out = null;
+            protected InputStream in = null;
+            protected OutputStream out = null;
+			private byte[] buffer = new byte[4096];
             public boolean run=false;
+			public IORedirector( InputStream in, OutputStream out ) {
+				this.in = in;
+				this.out = out;
+			}
             public void run() {
                 run=true;
                 logger.trace("Starting: "+ getName());
-                while(run) {
-                    try{
-                        int c;
-                        while( in.available() > 0 &&  (c= in.read()) != -1 ) {
-                            out.write(c);
-                        }
-                    }catch( IOException e ) {
-                        logger.error("IOException: "+e,e);
-                        run=false;
-                    }
-                }
+				try{
+					while(run) {
+						int length = in.read(buffer);
+						if( length == 0 ) break;
+						out.write(buffer, 0 ,length);
+					}
+					run=false;
+				}catch( IOException e ) {
+					logger.error("IOException: "+e,e);
+					run=false;
+				} finally {
+					try { in.close(); } catch( Exception ignored ) {}
+					try { out.close(); } catch( Exception ignored ) {}
+				}
             }
         }
         
