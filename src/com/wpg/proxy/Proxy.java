@@ -104,7 +104,7 @@ public class Proxy extends Thread {
     
     
     public void run(){
-        logger.trace("Proxy started on: "+ inetAddr.toString() +":"+ port);
+        logger.info("Proxy started on: "+ inetAddr.toString() +":"+ port);
         running=true;
         try {
             ssChannel = ServerSocketChannel.open();
@@ -182,7 +182,7 @@ public class Proxy extends Thread {
     
     public static void main(String[] args) {
         Properties props = new Properties();
-        props.setProperty("log4j.rootLogger","TRACE, stdout");
+        props.setProperty("log4j.rootLogger","DEBUG, stdout");
         props.setProperty("log4j.appender.stdout","org.apache.log4j.ConsoleAppender");
         props.setProperty("log4j.appender.stdout.layout","org.apache.log4j.PatternLayout");
         props.setProperty("log4j.appender.stdout.layout.ConversionPattern","%5p [%t] (%F:%L) - %m%n");
@@ -207,6 +207,7 @@ public class Proxy extends Thread {
                 logger.warn("Error creating a temporary file for proxy keystore ssl use: Exception: "+ ex);
             }
             Proxy proxy = new Proxy( java.net.InetAddress.getByName("127.0.0.1"), 8081, 50, keyFile.getPath(), "spassword".toCharArray(), "kpassword".toCharArray() );
+            //Proxy proxy = new Proxy( java.net.InetAddress.getByName("192.168.0.11"), 8080, 50, keyFile.getPath(), "spassword".toCharArray(), "kpassword".toCharArray() );
             ProxyRegistry.enableStatusBrowser(true);
             proxy.start();
         } catch( java.net.UnknownHostException e ) {

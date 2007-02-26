@@ -299,65 +299,61 @@ public class ProxyProcessor {
             Object object = key.attachment();
             logger.trace("Object: "+ object.toString());
             SocketChannel client = (SocketChannel) key.channel();
+			logger.debug("Old Send Buffer Size: "+ client.socket().getSendBufferSize() );
+			client.socket().setSendBufferSize( 32768 );
+			logger.debug("New Send Buffer Size: "+ client.socket().getSendBufferSize() );
+			ByteBuffer buffer = null;
+			HttpMessageResponse response = null;
             if( object instanceof HttpMessageResponse ) {
-                //HttpMessageResponse response = (HttpMessageResponse) key.attachment();
-                HttpMessageResponse response = (HttpMessageResponse) object;
-                try {
-                    //client = (SocketChannel) key.channel();
-                    
-                    ByteBuffer buffer = ByteBuffer.allocateDirect(1024*1024*10);
-                    buffer.clear();
-                    buffer.put( response.getStartLine().getBytes() );
-                    buffer.put((byte)'\r');
-                    buffer.put((byte)'\n');
-                    buffer.put( response.getHeadersAsString().getBytes() );
-                    buffer.put((byte)'\r');
-                    buffer.put((byte)'\n');
-                    if(response.getBodyContent() != null) {
-                        if( !response.isContentLengthSet() ) {
-                            buffer.put( new Integer(response.getBodyContent().length).toString().getBytes() );
-                            buffer.put((byte)'\r');
-                            buffer.put((byte)'\n');
-                        }
-                        buffer.put( response.getBodyContent() );
-                    }
-                    buffer.flip();
-                    if( logger.isTraceEnabled() ) {
-                        byte[] buf = new byte[buffer.limit()];
-                        buffer.get(buf);
-                        //logger.trace("Ouput to Browser: \n"+ new String(buf).replaceAll("[\r]?\n","\r\nWire==> ") );
-                        buffer.flip();
-                    }
-                    client.write(buffer);
-                    client.close();
-                } catch( Exception e ) {
-                    stopTransaction( startTimeStamp, ProxyStatistics.FAILURE );
-                    logger.error("Exception while returning the response: "+ e,e);
-                    runHandlers(ProxyRegistry.getHandlers(),response,e);
-                    client.close();
-                    return;
-                }
+                response = (HttpMessageResponse) object;
+				buffer = ByteBuffer.allocateDirect(1024*1024*10);
+				buffer.clear();
+				buffer.put( response.getStartLine().getBytes() );
+				buffer.put((byte)'\r');
+				buffer.put((byte)'\n');
+				buffer.put( response.getHeadersAsString().getBytes() );
+				buffer.put((byte)'\r');
+				buffer.put((byte)'\n');
+				if(response.getBodyContent() != null) {
+					if( !response.isContentLengthSet() ) {
+						buffer.put( new Integer(response.getBodyContent().length).toString().getBytes() );
+						buffer.put((byte)'\r');
+						buffer.put((byte)'\n');
+					}
+					buffer.put( response.getBodyContent() );
+				}
+				buffer.flip();
             } else if( object instanceof ByteBuffer ) {
-                try {
-                    //client = (SocketChannel) key.channel();
-                    
-                    //ByteBuffer buffer = (ByteBuffer) key.attachment();
-                    ByteBuffer buffer = (ByteBuffer) object;
-                    if( logger.isTraceEnabled() ) {
-                        byte[] buf = new byte[buffer.limit()];
-                        buffer.get(buf);
-                        //logger.trace("Ouput to Browser: \n"+ new String(buf).replaceAll("[\r]?\n","\r\nWire==> ") );
-                        buffer.flip();
-                    }
-                    client.write(buffer);
-                    client.close();
-                } catch( Exception e ) {
-                    stopTransaction( startTimeStamp, ProxyStatistics.FAILURE );
-                    logger.error("Exception while returning the response: "+ e,e);
-                    client.close();
-                    return;
-                }
+				buffer = (ByteBuffer) object;
             }
+			/*
+			if( logger.isTraceEnabled() ) {
+				byte[] buf = new byte[buffer.limit()];
+				buffer.get(buf);
+				logger.trace("Ouput to Browser: \n"+ new String(buf).replaceAll("[\r]?\n","\r\nWire==> ") );
+				buffer.flip();
+			}
+			*/
+			try {
+				int sendBufferSize = client.socket().getSendBufferSize();
+				byte[] sendBuffer = new byte[sendBufferSize];
+				while( buffer.position() < buffer.limit() ) {
+					int remaining = buffer.limit() - buffer.position();
+					int writeSize = ( (remaining > sendBufferSize) ? sendBufferSize : remaining );
+					logger.debug("Remaining: "+ remaining +" WriteSize: "+ writeSize +" SendBufferSize: "+ sendBufferSize);
+					buffer.get(sendBuffer, 0, writeSize); 
+					client.write( ByteBuffer.wrap(sendBuffer, 0, writeSize) );
+					try { Thread.sleep(100); } catch( Exception ignored ) {}
+				}
+				client.close();
+			} catch( Exception e ) {
+				stopTransaction( startTimeStamp, ProxyStatistics.FAILURE );
+				logger.error("Exception while returning the response: "+ e,e);
+				if( response != null )
+					runHandlers(ProxyRegistry.getHandlers(),response,e);
+				client.close();
+				return;
+			}
         }
         stopTransaction( startTimeStamp, ProxyStatistics.SUCCESS );
     }
@@ -447,7 +443,7 @@ public class ProxyProcessor {
                         sb.append(", ");
                 }
                 connection.setRequestProperty(key,sb.toString());
-                logger.trace("setting header: "+key+": "+ sb.toString() );
+                logger.debug("Setting Header: "+key+": "+ sb.toString() );
             } else {
                 //TODO add handle for compressed response
                 logger.debug("Ignoring Accept-Encoding Header");
@@ -464,12 +460,12 @@ public class ProxyProcessor {
                          */
             OutputStream writer = connection.getOutputStream();
             writer.write(request.getBodyContent());
-            logger.trace("Size of write: "+ request.getBodyContent().length);
+            logger.debug("Size of write: "+ request.getBodyContent().length);
         }
         
         HttpMessageResponse response = new HttpMessageResponse();
         response.setStartLine( connection.getHeaderField(0) );
-        logger.info("Response: "+ response.getStartLine());
+        logger.debug("Response: "+ response.getStartLine());
         response.setStatusCode( connection.getResponseCode() );
         response.setReasonPhrase( connection.getResponseMessage() );
         //response.setHeaders( connection.getHeaderFields() );
@@ -483,6 +479,7 @@ public class ProxyProcessor {
                 done=true;
             }
         }
+		int total =0;
         if(response.getStatusCode() != 404) {
             InputStream reader = null;
             try {
@@ -490,7 +487,8 @@ public class ProxyProcessor {
                 while(reader != null ) {
                     byte[] buff = new byte[1024*50];
                     int size = reader.read(buff,0,buff.length);
-                    logger.trace("Size of read: "+ size);
+					if( size > -1 ) total+=size;
+                    logger.debug("Size of read: "+ size +" subtotal: "+ total);
                     if( size<1 )
                         break;
                     response.addToBody(buff,size);
