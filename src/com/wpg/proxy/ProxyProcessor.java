@@ -174,10 +174,11 @@ public class ProxyProcessor {
             if( request.getMethod().equals("CONNECT") ) {
                 try {
                     //TODO upgrade this socket to an SSL connection back to our internal ssl server
-                    if( ProxyRegistry.getKeystoreFilename() == null )
+                    if( ProxyRegistry.getKeystoreFilename() == null ) {
                         throw new Exception("SSL Not Enabled on this proxy instance");
-                    else
-                        logger.info("Switching this connection to SSL");
+                    } else {
+                        logger.debug("Switching this connection to SSL");
+					}
                 } catch( Exception e ) {
                     logger.error("Exception while establishing the SSL Layer: "+ e,e);
                     client.configureBlocking(false);
@@ -199,9 +200,9 @@ public class ProxyProcessor {
                     return;
                 }
                 logger.trace("CONNECT method found, sending reply");
-                                /*
+								/*
                                 client.configureBlocking(false);
-                                SelectionKey clientKey = client.register(secureSelector, SelectionKey.OP_WRITE);
+                                SelectionKey clientKey = client.register(selector, SelectionKey.OP_WRITE);
                                 ByteBuffer buf = ByteBuffer.allocateDirect(1024*10);
                                 buf.clear();
                                 buf.put("HTTP/1.0 200 Connection established".getBytes() );
@@ -215,7 +216,16 @@ public class ProxyProcessor {
                                 buf.flip();
                                 clientKey.attach(buf);
                                 logger.trace("200 Connection established reply sent");
-                                 */
+								*/
+				/*
+				SSLSocketFactory sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
+				Socket socket = client.socket();
+				SSLSocket sslSocket = (SSLSocket)sslSocketFactory.createSocket( socket, socket.getInetAddress().getHostAddress(), socket.getPort(), true);
+				sslSocket.setUseClientMode(false);
+				sslSocket.startHandshake();
+				socket = sslSocket;
+				logger.debug("Switched this connection to SSL");
+				*/
                 //SSLServerThread sslServerThread = new SSLServerThread( securePort, request.getToHost(), request.getToPort(), client.socket() );
                 SSLServerThread sslServerThread = new SSLServerThread( securePort, request.getToHost(), 443, client.socket() );
                 sslServerThread.start();
@@ -411,15 +421,30 @@ public class ProxyProcessor {
         }
         request.setHeaders(headers);
         logger.trace("Finished Reading Header of Request");
-        char c;
-        StringBuffer sb = new StringBuffer();
-        while( is.ready() ) {
-            c = (char) is.read();
-            sb.append(c);
-        }
-        if( sb.toString().getBytes().length > 0 )
-            request.addToBody( sb.toString().getBytes(), sb.toString().getBytes().length );
-        logger.trace("Finished Reading Body of Request");
+						/*
+						StringBuffer sb = new StringBuffer();
+						char c;
+						while( is.ready() ) {
+							c = (char) is.read();
+							sb.append(c);
+						}
+						byte[] body = sb.toString().getBytes();
+						request.addToBody( body, body.length );
+						*/
+		if( request.isContentLengthSet() ) {
+			try {
+				logger.trace("Reading Body of request, size: "+ request.getContentLength() );
+				char[] buff = new char[request.getContentLength()];
+				s.setSoTimeout(10);
+				int size = is.read(buff);
+				byte[] body = new String(buff).getBytes();
+				if( size > 0 )
+					request.addToBody( body, body.length );
+			} catch (java.net.SocketTimeoutException ex ) {
+				logger.warn("Warning: "+ ex);
+			}
+		}
+        logger.trace("Finished Reading Body of Request, size: "+ (request.getBodyContent()==null?0:request.getBodyContent().length) );
         return request;
     }
     
@@ -430,7 +455,6 @@ public class ProxyProcessor {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setFollowRedirects(false);
         connection.setDoOutput(true);
-        //connection.setDoInput(true);
         Iterator it = request.getHeaders().keySet().iterator();
         while( it.hasNext() ) {
             String key = (String) it.next();
@@ -451,8 +475,9 @@ public class ProxyProcessor {
         }
         
         if( request.getBodyContent() != null ) {
+			logger.trace("Beginning request body write to url connection");
                         /*
-                        OutputStreamWriter os = new OutputStreamWriter( new BufferedOutputStream(connection.getOutputStream() ), "8859_1");
+                        java.io.OutputStreamWriter os = new java.io.OutputStreamWriter( new java.io.BufferedOutputStream(connection.getOutputStream() ), "8859_1");
                         os.write( new String(request.getBodyContent()) );
                         logger.trace("sending: "+ request.getBodyContent());
                         os.flush();
@@ -460,6 +485,8 @@ public class ProxyProcessor {
                          */
             OutputStream writer = connection.getOutputStream();
             writer.write(request.getBodyContent());
+			writer.flush();
+			writer.close();
             logger.debug("Size of write: "+ request.getBodyContent().length);
         }
         
@@ -494,10 +521,10 @@ public class ProxyProcessor {
                     response.addToBody(buff,size);
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
+                logger.error("Error reading response from request: "+ ex,ex);
             } finally {
-                if(reader!=null)
-                    reader.close();
+                if(reader!=null) reader.close();
+                if(connection!=null) connection.disconnect();
             }
         }
         if( logger.isTraceEnabled() && response.getBodyContent() != null ) {
@@ -671,12 +698,38 @@ public class ProxyProcessor {
                 while( localServerThread.socket == null ) {}
                 Socket server = localServerThread.socket;
                 logger.trace("Connected local client to local server");
+
+				String respString = new String("HTTP/1.0 200 Connection established\r\nProxy-agent: WPG-RecordingProxy/1.0\r\n\r\n");
+				OutputStream out = clientSocket.getOutputStream();
+				out.write( respString.getBytes() );
+				out.flush();
+
+				//upgrade connection to ssl
+				SSLSocketFactory sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
+				SSLSocket sslSocket = (SSLSocket)sslSocketFactory.createSocket( clientSocket, clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort(), true);
+				sslSocket.setUseClientMode(false);
+				sslSocket.setEnabledCipherSuites( sslSocket.getSupportedCipherSuites() );
+				try {
+					sslSocket.startHandshake();
+				} catch( javax.net.ssl.SSLHandshakeException sslEx ) {
+					logger.error("Exception in SSL Handshake: "+ sslEx,sslEx);
+					printStringArray( "Enabled Cipher Suites", sslSocket.getEnabledCipherSuites() );
+					printStringArray( "Supported Cipher Suites", sslSocket.getSupportedCipherSuites() );
+					printStringArray( "Enabled Protocols", sslSocket.getEnabledProtocols() );
+					printStringArray( "Supported Protocols", sslSocket.getSupportedProtocols() );
+					return;
+				}
+				clientSocket = sslSocket;
+                logger.trace("Upgraded client socket to SSL");
+
                 IORedirector c2l, l2c, l2s, s2l, s2t, t2s;
                 
                 //write the connect dialog to the client
+				/*
                 OutputStream os = clientSocket.getOutputStream();
                 byte[] msg = new String("HTTP/1.0 200 Connection established\r\nProxy-agent: WPG-RecordingProxy/1.0\r\n\r\n").getBytes();
                 os.write(msg);
+				*/
 
 				IORedirector c2s, s2c;
                 c2s = new IORedirector( clientSocket.getInputStream(), targetSocket.getOutputStream());
@@ -738,6 +791,15 @@ public class ProxyProcessor {
 							while(run) { }
 							*/
         }
+
+		/** print an array of Strings via the logger */
+		private void printStringArray( String desc, String[] list ) {
+			StringBuffer sb = new StringBuffer(desc +":");
+			for(int i=0; i< list.length; i++ ) {
+				sb.append("\n\t"+list[i]);
+			}
+			logger.info(sb.toString());
+		}
         
         /** internal thread to read packets from client and forward to remote */
         private class IORedirector extends Thread {
